@@ -1,75 +1,76 @@
-# 信息鉴别助手 (Media Filter)
+# Media Filter (信息鉴别助手)
 
-帮助老年人识别网络虚假信息的手机应用。
+A mobile application designed to help the elderly identify fake news and misleading information online.
 
-## 项目结构
+## Project Structure
 
 ```
 media_filter/
-├── backend/          # Python FastAPI 后端
-│   ├── main.py       # API 服务
+├── backend/          # Python FastAPI Backend
+│   ├── main.py       # API Service
 │   ├── requirements.txt
 │   └── .env.example
-└── mobile/           # Expo React Native 移动端
-    ├── app/          # 应用页面
-    ├── lib/          # 工具函数
+└── mobile/           # Expo React Native Mobile App
+    ├── app/          # Application Pages (Router)
+    ├── lib/          # Utilities & API client
     └── package.json
 ```
 
-## 快速开始
+## Quick Start
 
-### 1. 启动后端
+### 1. Start Backend
 
 ```bash
 cd backend
 
-# 创建虚拟环境
+# Create virtual environment
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# 安装依赖
+# Install dependencies
 pip install -r requirements.txt
 
-# 配置 API Key
+# Configure API Key
 cp .env.example .env
-# 编辑 .env 文件，填入你的 DEEPSEEK_API_KEY
+# Edit .env and fill in your DEEPSEEK_API_KEY
+# Note: Currently uses DeepSeek API (OpenAI compatible)
 
-# 启动服务
+# Start service
 python main.py
 ```
 
-后端将在 http://localhost:8000 运行
+The backend will run at http://localhost:8000
 
-### 2. 启动移动端
+### 2. Start Mobile App
 
 ```bash
 cd mobile
 
-# 安装依赖
+# Install dependencies
 npm install
 
-# 启动开发服务器
+# Start development server
 npm start
 ```
 
-扫描二维码在 Expo Go 应用中预览。
+Scan the QR code with the **Expo Go** app to preview.
 
-**注意**：如果在真机上测试，需要修改 `lib/api.ts` 中的 `API_BASE_URL` 为你电脑的局域网 IP 地址。
+**Note**: If testing on a physical device, update `API_BASE_URL` in `mobile/lib/api.ts` to your computer's local IP address.
 
-## 功能
+## Features
 
-- [x] 微信公众号文章链接分析
-- [x] 直接文字输入分析
-- [x] 可信度判定（可信/需谨慎/不可信）
-- [x] 详细分析说明
-- [ ] 抖音视频分析（规划中）
-- [ ] 视频号分析（规划中）
+- [x] WeChat Official Account article link analysis
+- [x] Direct text input analysis
+- [x] Credibility assessment (Reliable / Caution / Misleading)
+- [x] Detailed analysis explanations
+- [ ] Douyin video analysis (Planned)
+- [ ] WeChat Video Channel analysis (Planned)
 
-## 技术栈
+## Tech Stack
 
-- **后端**: Python, FastAPI, BeautifulSoup, DeepSeek API
-- **移动端**: React Native, Expo, TypeScript
+- **Backend**: Python, FastAPI, BeautifulSoup, DeepSeek API
+- **Mobile**: React Native, Expo, TypeScript
 
 ## Computerization
 
-由 Computerization 社团开发，致力于用技术帮助社区。
+Developed by the **Computerization** club. We are dedicated to helping the community through technology.

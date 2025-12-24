@@ -1,11 +1,10 @@
 # Mobile App Setup Guide
 
-Follow these steps in order. After completing all steps, let me know and I'll write the code.
+This guide explains how to set up the mobile application with native share capabilities.
 
-## Step 1: Create Expo Project
+## Step 1: Initialize Project (Reference only)
 
 ```bash
-cd /Users/wangsicheng/Developer/apps/media_filter
 npx create-expo-app@latest mobile --template blank-typescript
 cd mobile
 ```
@@ -16,59 +15,41 @@ cd mobile
 # Core dependencies
 npx expo install expo-router expo-clipboard expo-status-bar react-native-safe-area-context react-native-screens
 
-# Share intent (for receiving shared content)
+# Share intent (for receiving shared content from other apps)
 npm install expo-share-intent --legacy-peer-deps
 
-# Patch package (required for share intent on iOS)
+# Patch package (required for share intent fix on iOS)
 npm install patch-package --save-dev --legacy-peer-deps
 ```
 
-## Step 3: Create the xcode patch
+## Step 3: Configure iOS Share Extension
 
+The project uses `expo-share-intent` to allow users to share WeChat articles directly to the app.
+
+1. **Patch Xcode**: Ensure the patch is applied.
+   ```bash
+   npm run postinstall
+   ```
+
+2. **iOS Build**: When running `npx expo run:ios`, the native share extension target will be automatically configured by the `expo-share-intent` plugin.
+
+## Step 4: Run the App
+
+### Development Server
 ```bash
-mkdir -p patches
+npm start
 ```
 
-Then create file `patches/xcode+3.0.1.patch` with this content (I'll provide after you confirm):
-
-Or download it:
+### Local Native Build (Simulator)
 ```bash
-curl -o patches/xcode+3.0.1.patch "https://raw.githubusercontent.com/AChivai/expo-share-intent/main/patches/xcode%2B3.0.1.patch"
+npx expo run:ios
 ```
 
-## Step 4: Update package.json scripts
+## Development Workflow
 
-Add to your package.json scripts section:
-```json
-"postinstall": "patch-package"
-```
-
-## Step 5: Run postinstall
-
-```bash
-npm run postinstall
-```
-
-## Step 6: Create icon
-
-```bash
-mkdir -p assets
-# Use any 1024x1024 PNG as assets/icon.png
-# Quick option - download a placeholder:
-curl -o assets/icon.png "https://via.placeholder.com/1024x1024/4A90D9/ffffff.png"
-```
-
-Or create one manually - any 1024x1024 PNG will work.
-
-## Step 7: Confirm setup
-
-Run this to verify everything is installed:
-```bash
-ls -la node_modules/expo-share-intent
-ls -la patches/
-ls -la assets/icon.png
-```
+1. **Changing JS/TS code**: Changes will hot-reload automatically via Metro.
+2. **Changing Native Config**: If you modify `app.json` plugins or native files, you must run `npx expo run:ios` again to rebuild the binary.
 
 ---
 
-**When you've completed all steps above, reply "done" and I'll write the app code.**
+**Developed by Computerization**
