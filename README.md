@@ -73,4 +73,4 @@ Scan the QR code with the **Expo Go** app to preview.
 
 ## Computerization
 
-Developed by the **Computerization** club, with the assistant of deep neural networks (to learn more, see [AI Lab](https://github.com/WFLA-AI-Lab)). We are dedicated to helping the community through technology.
+Developed by the **Computerization** club, with the assistance of deep neural networks (to learn more, see [AI Lab](https://github.com/WFLA-AI-Lab)). We are dedicated to helping the community through technology.
