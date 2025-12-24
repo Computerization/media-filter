@@ -1,0 +1,41 @@
+# Ignore system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Ignore build artifacts
+/build
+*/build
+/dist
+*/dist
+/node_modules
+*/node_modules
+*.pyc
+__pycache__/
+
+# Ignore environment variables
+.env
+.env.local
+
+# Ignore Python environment
+venv/
+.venv/
+.idea/
+
+# Ignore native build folders
+/mobile/android/app/build
+/mobile/ios/build
+/mobile-kmp/composeApp/build
+/mobile-kmp/iosApp/iosApp.xcodeproj/project.xcworkspace/xcuserdata
+/mobile-kmp/iosApp/iosApp.xcodeproj/xcuserdata
+
+# Ignore Expo artifacts
+.expo/
+*.jks
+*.p12
+*.key
+*.keystore
+
+# Ignore KMP specific
+local.properties
+mobile-kmp/

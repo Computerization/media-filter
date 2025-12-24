@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "信息鉴别助手",
+    "slug": "media-filter",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "mediafilter",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#4A90D9"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.computerization.mediafilter"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4A90D9"
+      },
+      "package": "com.computerization.mediafilter"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsText": true
+          },
+          "androidIntentFilters": ["text/*"]
+        }
+      ]
+    ]
+  }
+}
