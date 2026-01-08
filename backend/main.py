@@ -1,6 +1,7 @@
 import os
 import re
-from typing import Optional
+import json
+from typing import Optional, Generator, Any
 
 import httpx
 from openai import OpenAI
@@ -8,6 +9,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 load_dotenv()
@@ -31,11 +33,8 @@ client = OpenAI(
 
 
 class AnalyzeRequest(BaseModel):
-    content: str  # Unified input field - can be URL or text
-    # Deprecated fields (kept for backward compatibility)
     url: Optional[str] = None
-    text: Optional[str] = None
-
+    text: Optional[str] = None  # Allow direct text input as fallback
 
 
 class AnalyzeResponse(BaseModel):
@@ -45,9 +44,6 @@ class AnalyzeResponse(BaseModel):
     summary: str
     details: str
     original_text: str
-    score: Optional[int] = None  # Add trust score (0-10)
-    input_type: str  # "url" or "text" - shows what was detected
-
 
 
 async def extract_wechat_article(url: str) -> dict:
@@ -94,148 +90,123 @@ async def extract_wechat_article(url: str) -> dict:
 # shilaohua
 # 引用名言
 # 引用事例
-def detect_input_type(input_string: str) -> tuple[str, str]:
-    """
-    Detect if input is a URL or plain text.
-    Returns: (type, normalized_input) where type is 'url' or 'text'
-    """
-    if not input_string:
-        return ("text", "")
-    
-    # Remove leading/trailing whitespace
-    cleaned = input_string.strip()
-    
-    # URL pattern detection
-    url_patterns = [
-        r'^https?://',  # Starts with http:// or https://
-        r'^www\.',  # Starts with www.
-        r'weixin\.qq\.com',  # WeChat domain
-        r'mp\.weixin\.qq\.com',  # WeChat MP domain
-    ]
-    
-    for pattern in url_patterns:
-        if re.search(pattern, cleaned, re.IGNORECASE):
-            # Normalize URL: add https:// if missing
-            if not cleaned.startswith(('http://', 'https://')):
-                cleaned = 'https://' + cleaned
-            return ("url", cleaned)
-    
-    # Check if it looks like a URL without protocol (contains domain-like structure)
-    if re.match(r'^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}', cleaned):
-        cleaned = 'https://' + cleaned
-        return ("url", cleaned)
-    
-    return ("text", cleaned)
 
-def analyze_with_llm(title: str, content: str, author: str) -> dict:
-    """Use DeepSeek to analyze if the content is misleading."""
-
-    prompt = f"""你是一位专业的信息鉴别专家，帮助老年人识别网络虚假信息。请仔细分析以下文章的可信度。
-
-【文章信息】
-标题：{title}
-来源：{author}
-
-【文章内容】
-{content}
-
-【分析维度】请从以下8个维度评估（每项0-10分）：
-
-1. **信息源可靠性**：来源是否权威？是否有官方认证？
-2. **内容真实性**：事实陈述是否有可验证的来源？是否引用权威机构？
-3. **语言特征**：是否使用"震惊"、"必看"、"速转"、"不转不是中国人"等煽动性词汇？
-4. **逻辑合理性**：论证是否严谨？是否有明显逻辑漏洞？
-5. **健康信息准确性**：涉及健康建议时，是否符合现代医学认知？
-6. **商业目的**：是否隐藏推销意图？是否诱导购买或添加联系方式？
-7. **科学依据**：引用的"研究"、"专家"是否具体可查？
-8. **情感操控**：是否利用恐惧、愤怒、焦虑等负面情绪传播？
-
-【常见虚假信息特征识别】
-- ❌ 伪科学养生：如"碱性水治癌"、"绿豆治百病"
-- ❌ 夸大恐吓：如"再不看就删了"、"XXX已证实致癌"
-- ❌ 编造权威：如"哈佛研究"、"央视报道"（但无具体出处）
-- ❌ 情感绑架：如"转发给你爱的人"、"为了家人健康"
-- ❌ 阴谋论：如"某某隐瞒真相"、"内部消息"
-- ❌ 软文推销：文中反复提及某产品或联系方式
-
-【输出格式】（严格按照此格式）
-判定：[可信/需谨慎/不可信]
-信任度：[X/10分]
-简要说明：[一句话总结问题，20-30字]
-详细分析：[分点说明问题，包含具体例证，150-250字]
-建议：[给老年人的实用建议，50字以内]
-
-【注意事项】
-- 使用简单易懂的语言，避免专业术语
-- 直接、明确地指出问题，不模棱两可
-- 如果是误导信息，必须清楚说明危害
-- 如果可信，也要说明判断依据"""
-
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=1500,
-        temperature=0.3,  # Lower temperature for more consistent analysis
-    )
-
-    response_text = response.choices[0].message.content or ""
-
-    # Enhanced parsing with scoring
+def parse_llm_response(full_response: str) -> dict[str, str]:
     verdict = "caution"
     verdict_emoji = "⚠️"
-    score = 5
+    summary = "请查看详细分析"
+    details = full_response
 
-    # Extract score
-    score_match = re.search(r"信任度[：:]\s*(\d+)", response_text)
-    if score_match:
-        score = int(score_match.group(1))
-        if score >= 7:
-            verdict = "reliable"
-            verdict_emoji = "✅"
-        elif score <= 4:
-            verdict = "misleading"
-            verdict_emoji = "❌"
-        else:
-            verdict = "caution"
-            verdict_emoji = "⚠️"
-    else:
-        # Fallback to keyword detection
-        if "可信" in response_text[:80] and "不可信" not in response_text[:80]:
-            verdict = "reliable"
-            verdict_emoji = "✅"
-        elif "不可信" in response_text[:80]:
-            verdict = "misleading"
-            verdict_emoji = "❌"
+    # 解析判定结果
+    if "可信" in full_response[:50] and "不可信" not in full_response[:50]:
+        verdict = "reliable"
+        verdict_emoji = "✅"
+    elif "不可信" in full_response[:50]:
+        verdict = "misleading"
+        verdict_emoji = "❌"
+    elif "需谨慎" in full_response[:50] or "谨慎" in full_response[:50]:
+        verdict = "caution"
+        verdict_emoji = "⚠️"
 
-    # Extract structured components
-    summary = ""
-    details = ""
-    advice = ""
-
-    summary_match = re.search(r"简要说明[：:]\s*(.+?)(?:\n|$)", response_text)
+    # 解析简要说明
+    summary_match = re.search(r"简要说明[：:]\s*(.+?)(?:\n|详细)", full_response)
     if summary_match:
         summary = summary_match.group(1).strip()
 
-    details_match = re.search(r"详细分析[：:]\s*(.+?)(?=建议[：:]|\Z)", response_text, re.DOTALL)
+    # 解析详细分析
+    details_match = re.search(r"详细分析[：:]\s*(.+)", full_response, re.DOTALL)
     if details_match:
         details = details_match.group(1).strip()
-
-    advice_match = re.search(r"建议[：:]\s*(.+?)(?:\n|$)", response_text, re.DOTALL)
-    if advice_match:
-        advice = advice_match.group(1).strip()
-
-    # Combine details and advice
-    full_details = details
-    if advice:
-        full_details += f"\n\n💡 建议：{advice}"
 
     return {
         "verdict": verdict,
         "verdict_emoji": verdict_emoji,
-        "summary": summary or "请查看详细分析",
-        "details": full_details or response_text,
-        "score": score,
+        "summary": summary,
+        "details": details,
     }
+
+def analyze_with_llm_stream(title: str, content: str, author: str):
+    """Use DeepSeek to analyze if the content is misleading."""
+
+    prompt = f"""
+        你是一位帮助老年人识别网络虚假信息的助手。请分析以下微信公众号文章，判断其可信度。
+
+        文章标题：{title}
+        来源账号：{author}
+
+        文章内容：
+        {content}
+
+        请从以下几个方面分析：
+        1. 是否包含虚假健康信息或伪科学
+        2. 是否是广告软文或推销产品
+        3. 是否使用夸张、恐吓性语言
+        4. 信息来源是否可靠
+        5. 是否有明显的逻辑错误
+
+        请用简单易懂的语言回复，适合老年人阅读。直接、坚决地给出回复。
+
+        回复格式：
+        判定：[可信/需谨慎/不可信]
+        简要说明：[一句话总结，不超过30字]
+        详细分析：[具体分析，100-200字]
+    """
+    try:
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1024,
+            stream=True,
+        )
+
+        for chunk in response:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+    
+    except Exception as e:
+        yield f"[错误] : {str(e)}"
+
+def create_stream_response_generator(
+    title: str, 
+    content: str, 
+    author: str, 
+    original_text: str
+) -> Generator[str, None, None]:
+    metadata = {
+        "type": "metadata",
+        "data": {
+            "title": title,
+            "author": author,
+            "original_text": original_text
+        }
+    }
+    yield f"data: {json.dumps(metadata, ensure_ascii=False)}\n\n"
+
+    llm_full_response = ""
+    for chunk in analyze_with_llm_stream(title, content, author):
+        llm_full_response += chunk
+        stream_data = {
+            "type": "stream",
+            "data": chunk
+        }
+        yield f"data: {json.dumps(stream_data, ensure_ascii=False)}\n\n"
+
+    if not llm_full_response.startswith("[错误]"):
+        parsed_result = parse_llm_response(llm_full_response)
+        final_data = {
+            "type": "final",
+            "data": {
+                "title": title,
+                "verdict": parsed_result["verdict"],
+                "verdict_emoji": parsed_result["verdict_emoji"],
+                "summary": parsed_result["summary"],
+                "details": parsed_result["details"],
+                "original_text": original_text
+            }
+        }
+        yield f"data: {json.dumps(final_data, ensure_ascii=False)}\n\n"
+
+    yield "data: [DONE]\n\n"
 
 @app.get("/")
 async def root():
@@ -244,77 +215,71 @@ async def root():
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_content(request: AnalyzeRequest):
-    """Analyze content with auto-detection of URL or text input."""
+    """Analyze content from URL or direct text input."""
 
-    # Handle both new unified 'content' field and legacy 'url'/'text' fields
-    input_content = request.content if hasattr(request, 'content') and request.content else None
-    
-    # Backward compatibility
-    if not input_content:
-        if request.url:
-            input_content = request.url
-        elif request.text:
-            input_content = request.text
-    
-    if not input_content:
+    if not request.url and not request.text:
         raise HTTPException(status_code=400, detail="请提供文章链接或文字内容")
-    
-    # Validate input length
-    if len(input_content) > 50000:
-        raise HTTPException(status_code=400, detail="内容过长，请限制在50000字符以内")
-    
-    if len(input_content.strip()) < 10:
-        raise HTTPException(status_code=400, detail="内容过短，请提供至少10个字符")
-    
-    # Auto-detect input type
-    input_type, normalized_input = detect_input_type(input_content)
-    
+
     title = "用户输入内容"
     content = ""
     author = "未知"
-    
-    if input_type == "url":
+
+    if request.url:
         # Check if it's a WeChat article URL
-        if "mp.weixin.qq.com" in normalized_input or "weixin.qq.com" in normalized_input:
-            try:
-                article = await extract_wechat_article(normalized_input)
-                title = article["title"]
-                content = article["content"]
-                author = article["author"]
-            except Exception as e:
-                # Fallback: if URL extraction fails, treat as text
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"无法提取文章内容：{str(e)}。请尝试复制文章内容直接粘贴分析。"
-                )
+        if "mp.weixin.qq.com" in request.url or "weixin.qq.com" in request.url:
+            article = await extract_wechat_article(request.url)
+            title = article["title"]
+            content = article["content"]
+            author = article["author"]
         else:
             raise HTTPException(
                 status_code=400,
-                detail="目前仅支持微信公众号文章链接。其他链接请复制文章内容后直接粘贴分析。"
+                detail="目前仅支持微信公众号文章链接（mp.weixin.qq.com）"
             )
     else:
-        # Direct text input
-        content = normalized_input
-        # Sanitize content
-        content = re.sub(r'\s+', ' ', content)  # Normalize whitespace
-        content = content.strip()
-    
+        content = request.text or ""
+
+    original_text = content[:500] + "..." if len(content) > 500 else content
+
     # Validate content is not empty
-    if not content or len(content) < 10:
-        raise HTTPException(status_code=400, detail="文章内容不能为空或过短")
-    
-    # Analyze with LLM
-    analysis = analyze_with_llm(title, content, author)
-    
-    return AnalyzeResponse(
-        title=title,
-        verdict=analysis["verdict"],
-        verdict_emoji=analysis["verdict_emoji"],
-        summary=analysis["summary"],
-        details=analysis["details"],
-        original_text=content[:500] + "..." if len(content) > 500 else content,
-        score=analysis.get("score"),
-        input_type=input_type,
+    if not content:
+        raise HTTPException(status_code=400, detail="文章内容不能为空")
+
+
+
+    def stream_generator():
+        yield f"data: {json.dumps({'type': 'metadata', 'data': {'title': title, 'author': author, 'original_text': original_text}}, ensure_ascii=False)}\n\n"
+        
+        full_llm_response = ""
+        for chunk in analyze_with_llm_stream(title, content, author):
+            full_llm_response += chunk
+            yield f"data: {json.dumps({'type': 'stream', 'data': chunk}, ensure_ascii=False)}\n\n"
+        
+        if not full_llm_response.startswith("[错误]"):
+            parsed = parse_llm_response(full_llm_response)
+            final_data = {
+                "type": "final",
+                "data": {
+                    "title": title,
+                    "verdict": parsed["verdict"],
+                    "verdict_emoji": parsed["verdict_emoji"],
+                    "summary": parsed["summary"],
+                    "details": parsed["details"],
+                    "original_text": original_text
+                }
+            }
+            yield f"data: {json.dumps(final_data, ensure_ascii=False)}\n\n"
+        
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        stream_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive"
+        }
     )
 
 
