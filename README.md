@@ -10,9 +10,12 @@ media_filter/
 │   ├── main.py       # API Service
 │   ├── requirements.txt
 │   └── .env.example
-├── ios/              # Primary iOS App - iPhone only (Kotlin Multiplatform + SwiftUI)
+├── ios/              # iOS App - iPhone only (Kotlin Multiplatform + SwiftUI)
 │   ├── composeApp/   # Shared Kotlin logic (calls DeepSeek API directly)
 │   └── iosApp/       # SwiftUI app + Share Extension
+├── android/          # Android App (Kotlin Multiplatform + Jetpack Compose)
+│   ├── composeApp/   # Shared Kotlin logic + Compose UI
+│   └── gradle/       # Gradle build configuration
 └── web/              # Web App (Expo) - requires backend
     ├── app/          # Application Pages (Router)
     └── lib/          # Utilities & API client
@@ -54,7 +57,16 @@ Then open `ios/iosApp/iosApp.xcodeproj` in Xcode and run.
 
 **Note**: The iOS app calls DeepSeek API directly and does not require the backend service.
 
-### 3. Run Web App (requires backend)
+### 3. Run Android App (no backend required)
+
+1. Open the `android/` folder in **Android Studio**
+2. Wait for Gradle sync to complete
+3. Select an emulator or connect a physical device (API 24+)
+4. Click **Run ▶** to build and launch
+
+**Note**: The Android app calls DeepSeek API directly, same as the iOS version.
+
+### 4. Run Web App (requires backend)
 
 ```bash
 cd web
@@ -73,6 +85,7 @@ The web app will run at http://localhost:8081
 - [x] Credibility assessment (Reliable / Caution / Misleading)
 - [x] Detailed analysis explanations
 - [x] iOS Share Extension (share directly from Safari/WeChat)
+- [x] Android Share Intent (share from WeChat/browsers)
 - [x] Dark/Light theme support
 - [ ] Douyin video analysis (Planned)
 - [ ] WeChat Video Channel analysis (Planned)
@@ -81,6 +94,7 @@ The web app will run at http://localhost:8081
 
 - **Backend**: Python, FastAPI, BeautifulSoup, DeepSeek API
 - **iOS**: Kotlin Multiplatform, SwiftUI, Ktor
+- **Android**: Kotlin Multiplatform, Jetpack Compose, Ktor
 - **Web**: React Native (Expo), TypeScript
 
 ## Computerization
