@@ -1,57 +1,102 @@
-# 慧眼 - 媒体内容真实性检测 API
+# WiseLens (慧眼)
 
-帮助老年人识别网络虚假信息的分析后端。
+A mobile application designed to help the elderly identify fake news and misleading information online.
 
-## 功能
+## Project Structure
 
-- 支持微信公众号文章链接分析
-- 支持抖音视频内容分析
-- 支持纯文本内容分析
-- ARG（可接受性-相关性-充分性）逻辑分析框架
-- 网络搜索辅助验证（新闻类内容）
-- 实时调试输出
+```
+media_filter/
+├── backend/          # Python FastAPI Backend (for web app)
+│   ├── main.py       # API Service
+│   ├── requirements.txt
+│   └── .env.example
+├── ios/              # iOS App - iPhone only (Kotlin Multiplatform + SwiftUI)
+│   ├── composeApp/   # Shared Kotlin logic (calls DeepSeek API directly)
+│   └── iosApp/       # SwiftUI app + Share Extension
+├── android/          # Android App (Kotlin Multiplatform + Jetpack Compose)
+│   ├── composeApp/   # Shared Kotlin logic + Compose UI
+│   └── gradle/       # Gradle build configuration
+└── web/              # Web App (Expo) - requires backend
+    ├── app/          # Application Pages (Router)
+    └── lib/          # Utilities & API client
+```
 
-## 安装
+## Quick Start
+
+### 1. Start Backend
 
 ```bash
 cd backend
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Configure API Key
+cp .env.example .env
+# Edit .env and fill in your DEEPSEEK_API_KEY
+# Note: Currently uses DeepSeek API (OpenAI compatible)
+
+# Start service
+python main.py
 ```
 
-## 配置
+The backend will run at http://localhost:8000
 
-创建 `.env` 文件：
-
-```
-DEEPSEEK_API_KEY=你的DeepSeek_API密钥
-```
-
-## 运行
+### 2. Run iOS App (iPhone only, no backend required)
 
 ```bash
-cd backend
-uvicorn main:app --host 0.0.0.0 --port 8000
+cd ios
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
 ```
 
-## API 端点
+Then open `ios/iosApp/iosApp.xcodeproj` in Xcode and run.
 
-- `GET /` - API 状态
-- `GET /test` - 测试页面
-- `POST /analyze` - 分析内容
+**Note**: The iOS app calls DeepSeek API directly and does not require the backend service.
 
-## 请求示例
+### 3. Run Android App (no backend required)
+
+1. Open the `android/` folder in **Android Studio**
+2. Wait for Gradle sync to complete
+3. Select an emulator or connect a physical device (API 24+)
+4. Click **Run ▶** to build and launch
+
+**Note**: The Android app calls DeepSeek API directly, same as the iOS version.
+
+### 4. Run Web App (requires backend)
 
 ```bash
-curl -X POST http://localhost:8000/analyze \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://mp.weixin.qq.com/s/xxx"}'
+cd web
+npm install
+npm run web
 ```
 
-## 分析流程
+The web app will run at http://localhost:8081
 
-1. 提取系统时间
-2. 判断文章类型
-3. 网络搜索（新闻类）
-4. 建立逻辑链
-5. ARG 三重验证
-6. 最终判断
+**Note**: The web app requires the backend service to be running.
+
+## Features
+
+- [x] WeChat Official Account article link analysis
+- [x] Direct text input analysis
+- [x] Credibility assessment (Reliable / Caution / Misleading)
+- [x] Detailed analysis explanations
+- [x] iOS Share Extension (share directly from Safari/WeChat)
+- [x] Android Share Intent (share from WeChat/browsers)
+- [x] Dark/Light theme support
+- [ ] Douyin video analysis (Planned)
+- [ ] WeChat Video Channel analysis (Planned)
+
+## Tech Stack
+
+- **Backend**: Python, FastAPI, BeautifulSoup, DeepSeek API
+- **iOS**: Kotlin Multiplatform, SwiftUI, Ktor
+- **Android**: Kotlin Multiplatform, Jetpack Compose, Ktor
+- **Web**: React Native (Expo), TypeScript
+
+## Computerization
+
+Developed by the **Computerization** club, **with the assistance of deep neural networks** (to learn more, see [AI Lab](https://github.com/WFLA-AI-Lab)). We are dedicated to helping the community through technology.

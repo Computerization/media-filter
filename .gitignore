@@ -1,28 +1,36 @@
-# Environment variables
-.env
-*.env
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-.venv/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# Ignore system files
 .DS_Store
-Thumbs.db
+.AppleDouble
+.LSOverride
 
-# Dependencies
-*.egg-info/
-dist/
-build/
+# Ignore build artifacts
+/build
+*/build
+/dist
+*/dist
+/node_modules
+*/node_modules
+*.pyc
+__pycache__/
+
+# Ignore environment variables
+.env
+.env.local
+
+# Ignore Python environment
+venv/
+.venv/
+.idea/
+
+# Ignore native build folders
+/web/android/app/build
+/web/ios/build
+/ios/iosApp/iosApp.xcodeproj/project.xcworkspace/xcuserdata
+/ios/iosApp/iosApp.xcodeproj/xcuserdata
+
+# Ignore AI assistant files
+GEMINI.md
+
+# Logs
+logs/
+*.log
