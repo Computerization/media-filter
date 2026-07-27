@@ -17,6 +17,11 @@ __pycache__/
 .env
 .env.local
 
+# Ignore signing keys — never commit these
+*.jks
+*.keystore
+keystore.properties
+
 # Ignore Python environment
 venv/
 .venv/

@@ -59,6 +59,12 @@ Then open `ios/iosApp/iosApp.xcodeproj` in Xcode and run.
 
 ### 3. Run Android App (no backend required)
 
+**Just want the app?** Download the latest APK from the
+[Releases page](https://github.com/Computerization/media-filter/releases) — no build required
+(Android 7.0+ / API 24+).
+
+To build it yourself:
+
 1. Open the `android/` folder in **Android Studio**
 2. Wait for Gradle sync to complete
 3. Select an emulator or connect a physical device (API 24+)
